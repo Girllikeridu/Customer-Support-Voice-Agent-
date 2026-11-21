@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopSmart AI - Voice Customer Support</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <!-- LiveKit Web Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ShopSmart AI Voice Support</h1>
+          <p class="brand-subtitle">Real-time Voice Agent powered by LiveKit, Deepgram & GPT-4o-mini</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="service-status" class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="service-status-text">Checking Services...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Left Column: Voice Call Console -->
+      <section class="voice-card">
+        <div class="voice-card-header">
+          <div class="agent-profile">
+            <div class="avatar-wrapper">
+              <div class="agent-avatar">
+                <span>🤖</span>
+              </div>
+              <span id="agent-active-badge" class="active-badge hidden"></span>
+            </div>
+            <div>
+              <h3>Sam</h3>
+              <p class="agent-role">AI Customer Support Specialist</p>
+            </div>
+          </div>
+          <div id="call-timer" class="call-timer hidden">00:00</div>
+        </div>
+
+        <!-- Voice Visualization Area -->
+        <div class="visualizer-container">
+          <canvas id="visualizer-canvas"></canvas>
+          <div class="visualizer-overlay">
+            <div id="voice-orb" class="voice-orb idle">
+              <div class="orb-ring ring-1"></div>
+              <div class="orb-ring ring-2"></div>
+              <div class="orb-ring ring-3"></div>
+              <div class="orb-core">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" x2="12" y1="19" y2="22"/>
+                </svg>
+              </div>
+            </div>
+            <div id="connection-status-badge" class="connection-status-badge">
+              Ready to Connect
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice Controls -->
+        <div class="voice-controls">
+          <button id="call-btn" class="btn btn-primary btn-call">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span id="call-btn-text">Start Voice Call</span>
+          </button>
+
+          <button id="mute-btn" class="btn btn-secondary btn-icon" disabled title="Mute Microphone">
+            <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </button>
+        </div>
+
+        <p class="permission-notice">
+          🔒 Microphone permission is requested when you click <strong>Start Voice Call</strong>. Audio is streamed via WebRTC directly to LiveKit.
+        </p>
+
+        <!-- Live Activity Transcript Feed -->
+        <div class="transcript-section">
+          <div class="transcript-header">
+            <h4>Live Conversation Log</h4>
+            <span id="transcription-status" class="transcript-badge">Idle</span>
+          </div>
+          <div id="transcript-feed" class="transcript-feed">
+            <div class="message system-msg">
+              Press "Start Voice Call" and speak into your microphone to test Sam in real-time.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Demo Cheat Sheet & Database Inspector -->
+      <aside class="side-panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="cheat-sheet">Interactive Cheat Sheet</button>
+          <button class="tab-btn" data-tab="database-view">Store Database</button>
+        </div>
+
+        <!-- Cheat Sheet Tab -->
+        <div id="tab-cheat-sheet" class="tab-content active">
+          <div class="card-hint">
+            💡 Say any of the example phrases into your microphone to test tool calling:
+          </div>
+
+          <div class="cheat-group">
+            <div class="group-title">
+              <span class="group-icon">📦</span>
+              <strong>1. Order Tracking</strong>
+            </div>
+            <div class="prompt-chips">
+              <div class="prompt-chip" onclick="copyPrompt('Where is my order ORD-1002?')">
+                "Where is my order ORD-1002?"
+                <span class="chip-tag">In Transit (UPS)</span>
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('Can you check order ORD-1001 for Sarah Connor?')">
+                "Can you check order ORD-1001?"
+                <span class="chip-tag">Delivered</span>
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('What is the status of order ORD-1003?')">
+                "What is the status of order 1003?"
+                <span class="chip-tag">Processing</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cheat-group">
+            <div class="group-title">
+              <span class="group-icon">🔍</span>
+              <strong>2. Product Search & Stock</strong>
+            </div>
+            <div class="prompt-chips">
+              <div class="prompt-chip" onclick="copyPrompt('Do you have wireless headphones in stock and how much are they?')">
+                "Do you have wireless headphones in stock?"
+                <span class="chip-tag">$179.99 (42 in stock)</span>
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('Tell me about your ergonomic office chair.')">
+                "Tell me about the ergonomic office chair."
+                <span class="chip-tag">$249.99 (15 in stock)</span>
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('Is the Smart Coffee Maker available?')">
+                "Is the Smart Coffee Maker in stock?"
+                <span class="chip-tag alert">Out of Stock</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cheat-group">
+            <div class="group-title">
+              <span class="group-icon">🔄</span>
+              <strong>3. Returns & Refunds</strong>
+            </div>
+            <div class="prompt-chips">
+              <div class="prompt-chip" onclick="copyPrompt('I want to return my order ORD-1001.')">
+                "I want to return order ORD-1001."
+                <span class="chip-tag success">Eligible (&lt; 30 days)</span>
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('Can I return order ORD-1004?')">
+                "Can I return order ORD-1004?"
+                <span class="chip-tag alert">Expired (&gt; 30 days)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cheat-group">
+            <div class="group-title">
+              <span class="group-icon">📜</span>
+              <strong>4. Store Policies & FAQs</strong>
+            </div>
+            <div class="prompt-chips">
+              <div class="prompt-chip" onclick="copyPrompt('What is your return policy?')">
+                "What is your return policy?"
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('How much is shipping and do you offer free shipping?')">
+                "Do you offer free shipping?"
+              </div>
+              <div class="prompt-chip" onclick="copyPrompt('What kind of warranty do your products come with?')">
+                "What kind of warranty do you have?"
+              </div>
+            </div>
+          </div>
+
+          <div class="cheat-group">
+            <div class="group-title">
+              <span class="group-icon">🙋</span>
+              <strong>5. Human Agent Escalation</strong>
+            </div>
+            <div class="prompt-chips">
+              <div class="prompt-chip" onclick="copyPrompt('I need to speak to a human manager.')">
+                "I need to speak to a human manager."
+                <span class="chip-tag">Auto-ticket</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="tab-database-view" class="tab-content">
+          <div class="db-actions">
+            <button class="btn btn-sm btn-secondary" onclick="loadDatabaseData()">↻ Refresh DB</button>
+          </div>
+          <div class="db-subheading">Orders (Live SQLite DB)</div>
+          <div id="db-orders-list" class="db-list">Loading orders...</div>
+
+          <div class="db-subheading" style="margin-top: 1rem;">Products Catalog</div>
+          <div id="db-products-list" class="db-list">Loading products...</div>
+
+          <div class="db-subheading" style="margin-top: 1rem;">Escalated Tickets</div>
+          <div id="db-tickets-list" class="db-list">Loading tickets...</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
